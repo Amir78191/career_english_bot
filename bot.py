@@ -1,47 +1,51 @@
-from aiogram import Bot, Dispatcher, executor, types
+import logging
+import os
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ParseMode
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.utils import executor
+from dotenv import load_dotenv
 
-API_TOKEN = '7623017087:AAH4hLpQgMev1UjRiEC6-7S7KqQCmcfVLdo
-'
+# Загружаем токен из файла .env
+load_dotenv()
+API_TOKEN = os.getenv("BOT_TOKEN")
 
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+
+# Создание бота и диспетчера
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
+# Включаем логирование
+dp.middleware.setup(LoggingMiddleware())
+
+# Команда /start
 @dp.message_handler(commands=['start'])
-async def send_welcome(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = [
-        "📖 Business Vocabulary",
-        "📝 Writing Zone",
-        "🎙 Speaking Practice",
-        "🎯 Daily Quizzes",
-        "💼 Interview Trainer"
-    ]
-    keyboard.add(*[types.KeyboardButton(text=b) for b in buttons])
-    await message.answer("Добро пожаловать в Career_EnglishBot!\nВыбери модуль:", reply_markup=keyboard)
+async def cmd_start(message: types.Message):
+    await message.reply("Привет! Я Career_EnglishBot. Я помогу тебе улучшить твой бизнес-английский!")
 
-@dp.message_handler(lambda message: message.text == "📖 Business Vocabulary")
-async def vocab_module(message: types.Message):
-    await message.answer("Вот несколько бизнес-слов (маркетинг):\n\n- ROI — return on investment\n- KPI — key performance indicator\n- Lead — потенциальный клиент")
+# Команда /help
+@dp.message_handler(commands=['help'])
+async def cmd_help(message: types.Message):
+    await message.reply("Я помогу тебе с бизнес-лексикой, шаблонами для писем и даже проведу с тобой собеседования! Напиши мне, чтобы начать.")
 
-@dp.message_handler(lambda message: message.text == "📝 Writing Zone")
-async def writing_zone(message: types.Message):
-    await message.answer("Шаблон делового письма:\n\nDear [Name],\n\nI hope this message finds you well.\n\n[Body]\n\nBest regards,\n[Your Name]")
+# Вопросы для викторины
+@dp.message_handler(commands=['quiz'])
+async def cmd_quiz(message: types.Message):
+    await message.reply("Какие выражения используются для начала деловой переписки?")
 
-@dp.message_handler(lambda message: message.text == "🎙 Speaking Practice")
-async def speaking_practice(message: types.Message):
-    await message.answer("Диалог:\n\n— Could you send me the report?\n— Sure, I’ll do it by the end of the day.")
-
-@dp.message_handler(lambda message: message.text == "🎯 Daily Quizzes")
-async def daily_quiz(message: types.Message):
-    await message.answer("What does 'KPI' stand for?\n\nA) Key Product Indicator\nB) Key Performance Indicator\nC) Knowledge Performance Insight")
-
-@dp.message_handler(lambda message: message.text == "💼 Interview Trainer")
-async def interview_trainer(message: types.Message):
-    await message.answer("Вопрос:\n\nTell me about yourself.\n\n(Ты можешь записать свой ответ и проверить)")
-
+# Получаем ответы
 @dp.message_handler()
-async def fallback(message: types.Message):
-    await message.answer("Пожалуйста, выбери один из модулей на клавиатуре.")
+async def echo(message: types.Message):
+    user_answer = message.text.lower()
+    correct_answers = ["dear", "hello", "greetings"]
+    if any(answer in user_answer for answer in correct_answers):
+        await message.reply("Правильно! 😊")
+    else:
+        await message.reply("Попробуй снова! ❌")
 
+# Запуск бота
 if __name__ == '__main__':
+    from aiogram import executor
     executor.start_polling(dp, skip_updates=True)
